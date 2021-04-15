@@ -98,7 +98,7 @@ export function cloneNode(node: ts.Node, replacements: IdentifierReplacements = 
     if (typeof node === 'object') {
         if (typeof node.kind === 'number') {
             // replace identifiers
-            let replacement: IdentifierReplacements[keyof IdentifierReplacements];
+            let replacement: IdentifierReplacements[string];
             if (node.kind === ts.SyntaxKind.Identifier && (replacement = replacements[(node as any).text])) {
                 return typeof replacement === 'string' ? ts.factory.createIdentifier(replacement) :
                     typeof replacement === 'function' ? replacement(node) : replacement;

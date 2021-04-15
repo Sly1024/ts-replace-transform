@@ -36,7 +36,7 @@ export const arrowFunc = (paramNames: string[], bodyName: string) => ({
     }
 });
 
-export const methodCall = (methodName: string, hostObj: any, ...args: any[]) => ({
+export const methodCall = (methodName: string, hostObj: object, ...args: any[]) => ({
     kind: ts.SyntaxKind.CallExpression,
     expression: {
         kind: ts.SyntaxKind.PropertyAccessExpression,
@@ -49,7 +49,7 @@ export const methodCall = (methodName: string, hostObj: any, ...args: any[]) => 
     arguments: args
 });
 
-export function matchNode(program: ts.Program, node: any, pattern: any, captureMap = {}): any {
+export function matchNode(program: ts.Program, node: any, pattern: object, captureMap = {}): any {
     if (typeof pattern === 'object') {
         if (typeof node !== 'object') return null;
         // both are type 'object' now

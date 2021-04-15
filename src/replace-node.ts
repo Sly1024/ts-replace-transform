@@ -13,14 +13,14 @@ export interface ReplacementRule {
 
 export const getTypeName = (node: ts.Node, program: ts.Program) => program.getTypeChecker().typeToString(program.getTypeChecker().getTypeAtLocation(node), node);
 
-export function getNodeForCode(code: string | ((matchResult: any) => string), matchResult: any) {
-    if (typeof code !== 'string') {
-        code = code(matchResult);
+export function getReplacementNode({ replacementCode }: ReplacementRule, matchResult: object) {
+    if (typeof replacementCode !== 'string') {
+        replacementCode = replacementCode(matchResult);
     }
-    const source = ts.createSourceFile('', code, ts.ScriptTarget.ESNext);
+    const source = ts.createSourceFile('', replacementCode, ts.ScriptTarget.ESNext);
     return source.statements[0]['expression'];
 }
-export function replaceNode(program: ts.Program, rules: ReplacementRule[], node: ts.Node) {
+export function replaceNode(program: ts.Program, rules: ReplacementRule[], node: ts.Node, stats: any = {}) {
     for (const rule of rules) {
         const matchResult = matchNode(program, node, rule.matchPattern);
         if (matchResult) {
@@ -38,7 +38,12 @@ export function replaceNode(program: ts.Program, rules: ReplacementRule[], node:
                 }
             }
 
-            return cloneNode(getNodeForCode(rule.replacementCode, matchResult), replacements);
+            try {
+                stats[rule.name] = (stats[rule.name] || 0) + 1;
+                return cloneNode(getReplacementNode(rule, matchResult), replacements);
+            } catch (err) {
+                console.log(`Error during replacement of "${rule.name}": `, err);
+            }
         }
     }
 

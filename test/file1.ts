@@ -32,8 +32,11 @@ function filter_idx_map() {
 }  
 
 function filter_map_reduce() {
-  const acc = '', _a = 3;
-  return nums.filter(e => e & 1).map(f => f*3).reduce((sum, a) => ++sum + a + acc.length + _a, 0);
+  return nums.filter(e => e & 1).map(f => f*3).reduce((sum, a) => sum + a, 0);
+}
+
+function filter_reduce() {
+  return nums.filter(e => e & 1).reduce((sum, a) => sum + a, 0);
 }
 
 function map_only() {
@@ -52,9 +55,39 @@ function map_to_literal() {
   return nums.map(() => true);
 }
 
+function map_reduce() {
+  return nums.map(f => f*3).reduce((sum, a) => sum + a, 0);
+}
+
+function map_idx_arr_reduce_idx() {
+  return nums.map((f, idx, arr) => f*3+idx).reduce((sum, a, idx) => sum + a + idx, 0);
+}
+
+function map_filter() {
+  return nums.map(n => n*n).filter(n => n++ < 20);
+}
+
+function find_only() {
+  return nums.find(n => n > 10);
+}
+
+function find_idx() {
+  return nums.find((n, idx) => n > idx);
+}
+
+
+function find_idx_arr() {
+  return nums.find((n, idx, arr) => n > idx - arr[0]);
+}
+
+function forEach_only() {
+  nums.forEach(n => console.log(n));
+}
+
 function not_array() {
   const nums = {} as any;
   // since 'nums' is not an array, these should not be replaced
   const a = nums.map(g => g+2);
   return nums.filter(e => e & 1).map(f => f*3);
 }
+
