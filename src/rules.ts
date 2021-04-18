@@ -213,9 +213,7 @@ export const replacementRules: ReplacementRule[] = [
         matchPattern: methodCall('reduce', 
             arrayExpression('arrayExpression'),
             arrowFunc(['_reduceAcc?', '_reduceCurrent?', '_reduceIdx?', '_reduceArr?'], 'reduceExpression'),
-            {
-                _captureName: 'reduceInitVal'
-            }
+            { _captureName: 'reduceInitVal' }
         ),
         replacementCode: (match) => `
         ((_arr) => {

@@ -7,8 +7,6 @@ export interface ReplacementRule {
     name: string;
     matchPattern: object;
     replacementCode: string | ((matchResult: any) => string);
-    tempVariables?: string[];
-    processCaptureBlocks?: { [captureBlockName: string] : string[] };
 }
 
 export const getTypeName = (node: ts.Node, program: ts.Program) => program.getTypeChecker().typeToString(program.getTypeChecker().getTypeAtLocation(node), node);
