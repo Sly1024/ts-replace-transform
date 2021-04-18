@@ -20,283 +20,214 @@ export const replacementRules: ReplacementRule[] = [
         name: 'forEach',
         matchPattern: methodCall('forEach', 
             arrayExpression('arrayExpression'), 
-            arrowFunc(['element', 'index?', 'array?'], 'body')
+            arrowFunc(['_item', '_idx?', '_array?'], 'body')
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            for (let i = 0; i < arr.length; ++i) {
-                let item = arr[i];
-                ${match.index ? 'let idx = i;' : ''}
-                ${match.array ? 'let array = arr;' : ''}
+        ((_arr) => {
+            for (let _i = 0; _i < _arr.length; ++_i) {
+                let _item = _arr[_i];
+                ${match._idx ? 'let _idx = _i;' : ''}
+                ${match._array ? 'let _array = _arr;' : ''}
                 body;
             }
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'i', 'item', 'idx', 'array'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            body: { element: 'item', index: 'idx', array: 'array' }
-        }
+        })(arrayExpression)`
     },
     {
         name: 'find',
         matchPattern: methodCall('find', 
             arrayExpression('arrayExpression'), 
-            arrowFunc(['element', 'index?', 'array?'], 'condition')
+            arrowFunc(['_item', '_idx?', '_array?'], 'condition')
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            for (let i = 0; i < arr.length; ++i) {
-                let item = arr[i];
-                ${match.index ? 'let idx = i;' : ''}
-                ${match.array ? 'let array = arr;' : ''}
-                if (condition) return arr[i];
+        ((_arr) => {
+            for (let _i = 0; _i < _arr.length; ++_i) {
+                let _item = _arr[_i];
+                ${match._idx ? 'let _idx = _i;' : ''}
+                ${match._array ? 'let _array = _arr;' : ''}
+                if (condition) return _arr[_i];
             }
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'i', 'item', 'idx', 'array'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            condition: { element: 'item', index: 'idx', array: 'array' }
-        }
+        })(arrayExpression)`
     },
     {
         name: 'filter_map_reduce',
         matchPattern: methodCall('reduce', 
             methodCall('map', 
-                filterWithArrowFunc(['filterItem?', 'filterIdx?', 'filterArr?']), 
-                arrowFunc(['mapItem?', 'mapIdx?'], 'mapExpression')
+                filterWithArrowFunc(['_filterItem?', '_filterIdx?', '_filterArr?']), 
+                arrowFunc(['_mapItem?', '_mapIdx?'], 'mapExpression')
             ),
-            arrowFunc(['reduceAcc?', 'reduceCurrent?', 'reduceIdx?'], 'reduceExpression'),
+            arrowFunc(['_reduceAcc?', '_reduceCurrent?', '_reduceIdx?'], 'reduceExpression'),
             { _captureName: 'reduceInitVal' }
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            let acc = reduceInitVal;
-            ${match.mapIdx || match.reduceIdx ? 'let mrIdx = 0;' : ''}
-            for (let i = 0; i < arr.length; i++) {
-                ${match.filterItem ? 'let fItem = arr[i];' : ''}
-                ${match.filterIdx ? 'let fIdx = i;' : ''}
-                ${match.filterArr ? 'let fArray = arr;' : ''}
+        ((_arr) => {
+            let _acc = reduceInitVal;
+            ${match._mapIdx || match._reduceIdx ? 'let _mrIdx = 0;' : ''}
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._filterItem ? 'let _filterItem = _arr[_i];' : ''}
+                ${match._filterIdx ? 'let _filterIdx = _i;' : ''}
+                ${match._filterArr ? 'let _filterArr = _arr;' : ''}
                 if (filterExpression) {
-                    ${match.mapItem ? 'let mItem = arr[i];' : ''}
-                    ${match.mapIdx ? 'let mIdx = mrIdx;' : ''}
-                    ${match.reduceAcc ? 'let currAcc = acc;' : ''}
-                    ${match.reduceIdx ? 'let rIdx = mrIdx;' : ''}
-                    let mapRes = mapExpression;
-                    acc = reduceExpression;
-                    ${match.mapIdx || match.reduceIdx ? 'mrIdx++;' : ''}
+                    ${match._mapItem ? 'let _mapItem = _arr[_i];' : ''}
+                    ${match._mapIdx ? 'let _mapIdx = _mrIdx;' : ''}
+                    let _mapRes = mapExpression;
+                    ${match._reduceAcc ? 'let _reduceAcc = _acc;' : ''}
+                    ${match._reduceCurrent ? 'let _reduceCurrent = _mapRes;' : ''}
+                    ${match._reduceIdx ? 'let _reduceIdx = _mrIdx;' : ''}
+                    _acc = reduceExpression;
+                    ${match._mapIdx || match._reduceIdx ? '_mrIdx++;' : ''}
                 }
             }
-            return acc;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'acc', 'mrIdx', 'i', 'fItem', 'fIdx', 'fArray', 'mItem', 'mIdx', 'currAcc', 'rIdx', 'mapRes'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            filterExpression: { filterItem: 'fItem', filterIdx: 'fIdx', filterArr: 'fArray' },
-            mapExpression: { mapItem: 'mItem', mapIdx: 'midx' },
-            reduceInitVal: {},
-            reduceExpression: { reduceAcc: 'currAcc', reduceCurrent: 'mapRes', reduceIdx: 'rIdx' }
-        }
+            return _acc;
+        })(arrayExpression)`
     },
     {
         name: 'filter_reduce',
         matchPattern: methodCall('reduce', 
-            filterWithArrowFunc(['filterItem?', 'filterIdx?', 'filterArr?']), 
-            arrowFunc(['reduceAcc?', 'reduceCurrent?', 'reduceIdx?'], 'reduceExpression'),
+            filterWithArrowFunc(['_filterItem?', '_filterIdx?', '_filterArr?']), 
+            arrowFunc(['_reduceAcc?', '_reduceCurrent?', '_reduceIdx?'], 'reduceExpression'),
             { _captureName: 'reduceInitVal' }
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            let acc = reduceInitVal;
-            ${match.reduceIdx ? 'let mrIdx = 0;' : ''}
-            for (let i = 0; i < arr.length; i++) {
-                ${match.filterItem ? 'let fItem = arr[i];' : ''}
-                ${match.filterIdx ? 'let fIdx = i;' : ''}
-                ${match.filterArr ? 'let fArr = arr;' : ''}
+        ((_arr) => {
+            let _acc = reduceInitVal;
+            ${match._reduceIdx ? 'let _mrIdx = 0;' : ''}
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._filterItem ? 'let _filterItem = _arr[_i];' : ''}
+                ${match._filterIdx ? 'let _filterIdx = _i;' : ''}
+                ${match._filterArr ? 'let _filterArr = _arr;' : ''}
                 if (filterExpression) {
-                    ${match.reduceAcc ? 'let currAcc = acc;' : ''}
-                    ${match.reduceCurrent ? 'let rItem = arr[i];' : ''}
-                    ${match.reduceIdx ? 'let rIdx = mrIdx;' : ''}
-                    acc = reduceExpression;
-                    ${match.reduceIdx ? 'mrIdx++;' : ''}
+                    ${match._reduceAcc ? 'let _reduceAcc = _acc;' : ''}
+                    ${match._reduceCurrent ? 'let _reduceCurrent = _arr[_i];' : ''}
+                    ${match._reduceIdx ? 'let _reduceIdx = _mrIdx;' : ''}
+                    _acc = reduceExpression;
+                    ${match._reduceIdx ? '_mrIdx++;' : ''}
                 }
             }
-            return acc;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'acc', 'mrIdx', 'i', 'fItem', 'fIdx', 'fArr', 'currAcc', 'rItem', 'rIdx'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            filterExpression: { filterItem: 'fItem', filterIdx: 'fIdx', filterArr: 'fArr' },
-            reduceInitVal: {},
-            reduceExpression: { reduceAcc: 'currAcc', reduceCurrent: 'rItem', reduceIdx: 'rIdx' }
-        }
+            return _acc;
+        })(arrayExpression)`
     },
     {
         name: 'filter_map',
         matchPattern: methodCall('map', 
-            filterWithArrowFunc(['filterItem?', 'filterIdx?', 'filterArr?']), 
-            arrowFunc(['mapItem?', 'mapIdx?'], 'mapExpression')
+            filterWithArrowFunc(['_filterItem?', '_filterIdx?', '_filterArr?']), 
+            arrowFunc(['_mapItem?', '_mapIdx?'], 'mapExpression')
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            const res = [];
-            for (let i = 0; i < arr.length; i++) {
-                ${match.filterItem || match.mapItem ? 'let x = arr[i];' : ''}
-                ${match.filterIdx ? 'let idx = i;' : ''}
-                ${match.filterArr ? 'let array = arr;' : ''}
-                ${match.mapIdx ? 'let rLen = res.length;' : ''}
-                if (filterExpression) res.push(mapExpression);
+        ((_arr) => {
+            const _res = [];
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._filterItem ? 'let _filterItem = _arr[_i];' : ''}
+                ${match._mapItem ? 'let _mapItem = _arr[_i];' : ''}
+                ${match._filterIdx ? 'let _filterIdx = _i;' : ''}
+                ${match._filterArr ? 'let _filterArr = _arr;' : ''}
+                ${match._mapIdx ? 'let _mapIdx = _res.length;' : ''}
+                if (filterExpression) _res.push(mapExpression);
             }
-            return res;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'res', 'i', 'x', 'idx', 'array', 'rLen'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            filterExpression: { filterItem: 'x', filterIdx: 'idx', filterArr: 'array' },
-            mapExpression: { mapItem: 'x', mapIdx: 'rLen' }
-        }
+            return _res;
+        })(arrayExpression)`
     },
     {
         name: 'map_filter',
         matchPattern: methodCall('filter', 
             methodCall('map', 
                 arrayExpression('arrayExpression'), 
-                arrowFunc(['mapItem?', 'mapIdx?', 'mapArr?'], 'mapExpression')
+                arrowFunc(['_mapItem?', '_mapIdx?', '_mapArr?'], 'mapExpression')
             ), 
-            arrowFunc(['filterItem?', 'filterIdx?'], 'filterExpression')
+            arrowFunc(['_filterItem?', '_filterIdx?'], 'filterExpression')
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            const res = [];
-            for (let i = 0; i < arr.length; i++) {
-                ${match.mapItem ? 'let mItem = arr[i];' : ''}
-                ${match.mapIdx ? 'let mIdx = i;' : ''}
-                ${match.mapArr ? 'let mArr = arr;' : ''}
-                const mapResult = mapExpression;
-                ${match.filterItem ? 'let fItem = mapResult;' : ''}
-                ${match.filterIdx ? 'let fIdx = i;' : ''}
-                if (filterExpression) res.push(mapResult);
+        ((_arr) => {
+            const _res = [];
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._mapItem ? 'let _mapItem = _arr[_i];' : ''}
+                ${match._mapIdx ? 'let _mapIdx = _i;' : ''}
+                ${match._mapArr ? 'let _mapArr = _arr;' : ''}
+                const _mapResult = mapExpression;
+                ${match._filterItem ? 'let _filterItem = _mapResult;' : ''}
+                ${match._filterIdx ? 'let _filterIdx = _i;' : ''}
+                if (filterExpression) _res.push(_mapResult);
             }
-            return res;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'res', 'i', 'mItem', 'mIdx', 'mArr', 'mapResult', 'fItem', 'fIdx'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            mapExpression: { mapItem: 'mItem', mapIdx: 'mIdx', mapArr: 'mArr' },
-            filterExpression: { filterItem: 'fItem', filterIdx: 'fIdx' }
-        }
+            return _res;
+        })(arrayExpression)`
     },
     {
         name: 'map_reduce',
         matchPattern: methodCall('reduce', 
                 methodCall('map', 
                     arrayExpression('arrayExpression'), 
-                    arrowFunc(['mapItem?', 'mapIdx?', 'mapArr?'], 'mapExpression')
+                    arrowFunc(['_mapItem?', '_mapIdx?', '_mapArr?'], 'mapExpression')
                 ),
-            arrowFunc(['reduceAcc?', 'reduceCurrent?', 'reduceIdx?'], 'reduceExpression'),
-            {
-                _captureName: 'reduceInitVal'
-            }
+            arrowFunc(['_reduceAcc?', '_reduceCurrent?', '_reduceIdx?'], 'reduceExpression'),
+            { _captureName: 'reduceInitVal' }
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            let acc = reduceInitVal;
-            for (let i = 0; i < arr.length; i++) {
-                ${match.mapItem ? 'let x = arr[i];' : ''}
-                ${match.mapIdx ? 'let midx = i;' : ''}
-                ${match.mapArr ? 'let array = arr;' : ''}
-                ${match.reduceAcc ? 'let currAcc = acc;' : ''}
-                ${match.reduceIdx ? 'let ridx = i;' : ''}
-                let mapRes = mapExpression;
-                acc = reduceExpression;
+        ((_arr) => {
+            let _acc = reduceInitVal;
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._mapItem ? 'let _mapItem = _arr[_i];' : ''}
+                ${match._mapIdx ? 'let _mapIdx = _i;' : ''}
+                ${match._mapArr ? 'let _mapArr = _arr;' : ''}
+                let _mapResult = mapExpression;
+                ${match._reduceAcc ? 'let _reduceAcc = _acc;' : ''}
+                ${match._reduceCurrent ? 'let _reduceCurrent = _mapResult;' : ''}
+                ${match._reduceIdx ? 'let _reduceIdx = _i;' : ''}
+                _acc = reduceExpression;
             }
-            return acc;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'acc', 'i', 'x', 'midx', 'array', 'currAcc', 'ridx', 'mapRes'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            mapExpression: { mapItem: 'x', mapIdx: 'midx', mapArr: 'array' },
-            reduceInitVal: {},
-            reduceExpression: { reduceAcc: 'currAcc', reduceCurrent: 'mapRes', reduceIdx: 'ridx' }
-        }
+            return _acc;
+        })(arrayExpression)`
     },
     {
         name: 'filter',
-        matchPattern: filterWithArrowFunc(['filterItem?', 'filterIdx?', 'filterArr?']),
+        matchPattern: filterWithArrowFunc(['_filterItem?', '_filterIdx?', '_filterArr?']),
         replacementCode: (match) => `
-        ((arr) => {
-            const res = [];
-            for (let i = 0; i < arr.length; i++) {
-                ${match.filterItem ? 'let item = arr[i];' : ''}
-                ${match.filterIdx ? 'let idx = i;' : ''}
-                ${match.filterArr ? 'let array = arr;' : ''}
-                if (filterExpression) res.push(arr[i]);
+        ((_arr) => {
+            const _res = [];
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._filterItem ? 'let _filterItem = _arr[_i];' : ''}
+                ${match._filterIdx ? 'let _filterIdx = _i;' : ''}
+                ${match._filterArr ? 'let _filterArr = _arr;' : ''}
+                if (filterExpression) _res.push(_arr[_i]);
             }
-            return res;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'res', 'i', 'item', 'idx', 'array'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            filterExpression: { filterItem: 'item', filterIdx: 'idx', filterArr: 'array' }
-        }
+            return _res;
+        })(arrayExpression)`
     },
     {
         name: 'map',
         matchPattern: methodCall('map', 
             arrayExpression('arrayExpression'), 
-            arrowFunc(['mapItem?', 'mapIdx?', 'mapArr?'], 'mapExpression')),
+            arrowFunc(['_mapItem?', '_mapIdx?', '_mapArr?'], 'mapExpression')),
         replacementCode: (match) => `
-        ((arr) => {
-            const res = new Array(arr.length);
-            for (let i = 0; i < arr.length; i++) {
-                ${match.mapItem ? 'let x = arr[i];' : ''}
-                ${match.mapIdx ? 'let idx = i;' : ''}
-                ${match.mapArr ? 'let array = arr;' : ''}
-                res[i] = mapExpression;
+        ((_arr) => {
+            const _res = new Array(_arr.length);
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._mapItem ? 'let _mapItem = _arr[_i];' : ''}
+                ${match._mapIdx ? 'let _mapIdx = _i;' : ''}
+                ${match._mapArr ? 'let _mapArr = _arr;' : ''}
+                _res[_i] = mapExpression;
             }
-            return res;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'res', 'i', 'x', 'idx', 'array'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            mapExpression: { mapItem: 'x', mapIdx: 'idx', mapArr: 'array' }
-        }
+            return _res;
+        })(arrayExpression)`
     },
     {
         name: 'reduce',
         matchPattern: methodCall('reduce', 
             arrayExpression('arrayExpression'),
-            arrowFunc(['reduceAcc?', 'reduceCurrent?', 'reduceIdx?', 'reduceArr?'], 'reduceExpression'),
+            arrowFunc(['_reduceAcc?', '_reduceCurrent?', '_reduceIdx?', '_reduceArr?'], 'reduceExpression'),
             {
                 _captureName: 'reduceInitVal'
             }
         ),
         replacementCode: (match) => `
-        ((arr) => {
-            let acc = reduceInitVal;
-            for (let i = 0; i < arr.length; i++) {
-                ${match.reduceAcc ? 'let currAcc = acc;' : ''}
-                ${match.reduceCurrent ? 'let x = arr[i];' : ''}
-                ${match.reduceIdx ? 'let idx = i;' : ''}
-                ${match.reduceArr ? 'let array = arr;' : ''}
-                acc = reduceExpression;
+        ((_arr) => {
+            let _acc = reduceInitVal;
+            for (let _i = 0; _i < _arr.length; _i++) {
+                ${match._reduceAcc ? 'let _reduceAcc = _acc;' : ''}
+                ${match._reduceCurrent ? 'let _reduceCurrent = _arr[_i];' : ''}
+                ${match._reduceIdx ? 'let _reduceIdx = _i;' : ''}
+                ${match._reduceArr ? 'let _reduceArr = _arr;' : ''}
+                _acc = reduceExpression;
             }
-            return acc;
-        })(arrayExpression)
-        `,
-        tempVariables: ['arr', 'acc', 'i', 'currAcc', 'x', 'idx', 'array'],
-        processCaptureBlocks: {
-            arrayExpression: {},
-            reduceInitVal: {},
-            reduceExpression: { reduceAcc: 'currAcc', reduceCurrent: 'x', reduceIdx: 'idx', reduceArr: 'array' }
-        }
+            return _acc;
+        })(arrayExpression)`
     }
 ];

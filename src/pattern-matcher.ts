@@ -18,6 +18,8 @@ export const arrayExpression = (captureName: string) => ({
     _captureName: captureName
 });
 
+const removeQuestionMark = (paramName: string) => paramName.endsWith('?') ? paramName.slice(0, -1) : paramName;
+
 export const arrowFunc = (paramNames: string[], bodyName: string) => ({
     kind: ts.SyntaxKind.ArrowFunction,
     parameters: paramNames.map(paramName => 
@@ -26,13 +28,14 @@ export const arrowFunc = (paramNames: string[], bodyName: string) => ({
             _optional: paramName.endsWith('?'),
             name: {
                 kind: ts.SyntaxKind.Identifier,
-                _captureName: paramName.endsWith('?') ? paramName.slice(0, -1) : paramName
+                _captureName: removeQuestionMark(paramName)
             }
         })
     ),
     body: {
         _check: isValue,
         _captureName: bodyName,
+        _parameterNames: paramNames.map(removeQuestionMark)
     }
 });
 
@@ -68,6 +71,9 @@ export function matchNode(program: ts.Program, node: any, pattern: object, captu
                         continue;
                     case '_captureName':
                         captureMap[patternVal] = node;
+                        continue;
+                    case '_parameterNames':
+                        captureMap[pattern['_captureName'] + '_parameterNames'] = patternVal;
                         continue;
                     case '_optional': continue;
                 }

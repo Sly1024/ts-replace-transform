@@ -94,14 +94,32 @@ export type IdentifierReplacements = {
     [id_name: string]: ts.Node | string | ((node: ts.Node) => ts.Node)
 }
 
-export function cloneNode(node: ts.Node, replacements: IdentifierReplacements = {}) {
+function getReplacementNode(replacements:IdentifierReplacements, node: any) {
+    let replacement: IdentifierReplacements[string];
+    if (replacement = replacements[node.text]) {
+        return typeof replacement === 'string' ? ts.factory.createIdentifier(replacement) :
+            typeof replacement === 'function' ? replacement(node) : replacement;
+    }
+}
+
+export function getTempVar(tempVars: IdentifierReplacements, varName: string) {
+    let replacement: any;
+    if (replacement = tempVars[varName]) return replacement;
+    if (varName.startsWith('_')) {
+        return (tempVars[varName] = ts.factory.createTempVariable(null));
+    }
+}
+
+export function cloneNode(node: ts.Node, replacements: IdentifierReplacements = {}, tempVars: IdentifierReplacements = null) {
     if (typeof node === 'object') {
         if (typeof node.kind === 'number') {
             // replace identifiers
-            let replacement: IdentifierReplacements[string];
-            if (node.kind === ts.SyntaxKind.Identifier && (replacement = replacements[(node as any).text])) {
-                return typeof replacement === 'string' ? ts.factory.createIdentifier(replacement) :
-                    typeof replacement === 'function' ? replacement(node) : replacement;
+            if (node.kind === ts.SyntaxKind.Identifier) {
+                let replacement = getReplacementNode(replacements, node);
+                if (replacement) return replacement;
+                if (tempVars) {
+                    if (replacement = getTempVar(tempVars, (node as any).text)) return replacement;
+                }
             }
 
             const kindName = fixSyntaxName(ts.SyntaxKind[node.kind]);
@@ -113,7 +131,7 @@ export function cloneNode(node: ts.Node, replacements: IdentifierReplacements = 
                     if (!(paramName in node) && !(alternateProp[paramName] in node) && !ignoreMissingProperty[kindName].includes(paramName)) {
                         throw new Error(`[cloneNode] Could not find property "${paramName}" on node kind "${kindName}".`);
                     }
-                    return cloneNode(node[paramName] || node[alternateProp[paramName]], replacements);
+                    return cloneNode(node[paramName] || node[alternateProp[paramName]], replacements, tempVars);
                 });
                 try {
                     return creatorFunc.apply(ts.factory, args);
@@ -127,7 +145,7 @@ export function cloneNode(node: ts.Node, replacements: IdentifierReplacements = 
             }
         }
         if (Array.isArray(node)) {
-            return node.map(item => cloneNode(item, replacements));
+            return node.map(item => cloneNode(item, replacements, tempVars));
         }
         throw new Error('[cloneNode] Unknown node object encountered.');
     }
